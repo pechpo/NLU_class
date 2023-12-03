@@ -142,10 +142,11 @@ class BERT_model(nn.Module):
                 #print(name,param.size())
 
     def forward(self, x):
-        x = self.model(x)
-        #print(x)
-        x = x.last_hidden_state[:, 0]
-        #print(x)
+        x = self.model(x, output_hidden_states=True)
+        #print(x.last_hidden_state.shape)
+        #x = x.last_hidden_state[:, 0]
+        #print(len(x.hidden_states))  #13
+        x = x.hidden_states[8][:, 0]
         x = self.MLP(x)
         #print(x)
         return x
