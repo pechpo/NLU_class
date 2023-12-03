@@ -157,7 +157,7 @@ if __name__ == '__main__':
     # 设置损失函数
     loss_function = nn.CrossEntropyLoss()
     # 设置优化器                                       
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)  
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=5e-4)  
 
     print(1)
     # 进行训练

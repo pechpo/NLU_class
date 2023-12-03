@@ -111,6 +111,7 @@ class BERT_model(nn.Module):
         super(BERT_model, self).__init__()
         self.model_name = model_name
         self.model = BertModel.from_pretrained(self.model_name)
+        self.freeze()
         self.MLP = nn.Sequential(
             nn.Linear(768, 512),
             nn.ReLU(),
@@ -120,6 +121,25 @@ class BERT_model(nn.Module):
             #nn.Dropout(),
             nn.Linear(512, numclass)
         )
+
+    def freeze(self):
+        unfreeze_layers = ['layer.10','layer.11','bert.pooler','out.']
+ 
+        #for name, param in self.model.named_parameters():
+            #print(name,param.size())
+        #print("*"*30)
+        #print('\n')
+    
+        for name, param in self.model.named_parameters():
+            param.requires_grad = False
+            for ele in unfreeze_layers:
+                if ele in name:
+                    param.requires_grad = True
+                    break
+        #验证一下
+        #for name, param in self.model.named_parameters():
+            #if param.requires_grad:
+                #print(name,param.size())
 
     def forward(self, x):
         x = self.model(x)
