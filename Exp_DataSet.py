@@ -6,6 +6,7 @@ import jieba
 import pickle
 from tqdm import tqdm
 from torch.utils.data import TensorDataset
+from transformers import BertTokenizer
 
 class Dictionary(object):
     def __init__(self, path):
@@ -133,6 +134,51 @@ class Corpus(object):
                 else:
                     label = json.loads(line)['label']
                     labels.append(self.dictionary.label2idx[label])
+
+            idss = torch.tensor(np.array(idss))
+            labels = torch.tensor(np.array(labels)).long()
+            
+        return TensorDataset(idss, labels)  #一个token序列对应一个label数字
+    
+class BERT_tokenizer(object):
+    def __init__(self, path, model_name):
+        self.model_name = model_name
+        self.tokenizer = BertTokenizer.from_pretrained(self.model_name)
+
+        self.label2idx = {}
+        self.idx2label = []
+
+        # 获取 label 的 映射
+        with open(os.path.join(path, 'labels.json'), 'r', encoding='utf-8') as f:
+            for line in f:
+                one_data = json.loads(line)
+                label, label_desc = one_data['label'], one_data['label_desc']
+                self.idx2label.append([label, label_desc])
+                self.label2idx[label] = len(self.idx2label) - 1
+
+        self.train = self.tokenize(os.path.join(path, 'train.json'))
+        self.valid = self.tokenize(os.path.join(path, 'dev.json'))
+        self.test = self.tokenize(os.path.join(path, 'test.json'), True)
+
+    def tokenize(self, path, test_mode=False):
+        idss = []
+        labels = []
+        with open(path, 'r', encoding='utf8') as f:
+            for line in f:
+                one_data = json.loads(line)  # 读取一条数据
+                sent = one_data['sentence']
+
+                ids = self.tokenizer.encode(sent, add_special_tokens=True,
+                    padding="max_length", max_length=100, truncation=True)  #当前句子对应的token序列
+                idss.append(ids)
+                
+                # 测试集无标签，在 label 中存测试数据的 id，便于最终预测文件的打印
+                if test_mode:
+                    label = json.loads(line)['id']      
+                    labels.append(label)
+                else:
+                    label = json.loads(line)['label']
+                    labels.append(self.label2idx[label])
 
             idss = torch.tensor(np.array(idss))
             labels = torch.tensor(np.array(labels)).long()

@@ -6,8 +6,8 @@ import os
 
 from tqdm import tqdm
 from torch.utils.data import  DataLoader
-from Exp_DataSet import Corpus
-from Exp_Model import BiLSTM_model, Transformer_model
+from Exp_DataSet import Corpus, BERT_tokenizer
+from Exp_Model import BiLSTM_model, Transformer_model, BERT_model
 
 
 def train():
@@ -31,6 +31,8 @@ def train():
             # 模型预测
             y_hat = model(batch_x)  #输出一个分布
 
+            #print(y_hat.shape)
+            #print(batch_y.shape)
             loss = loss_function(y_hat, batch_y)
 
             optimizer.zero_grad()   # 梯度清零
@@ -121,22 +123,35 @@ if __name__ == '__main__':
     num_epochs = 5
     lr = 1e-4
     num_class = 15
+    model_name = "BERT"
     #------------------------------------------------------end------------------------------------------------------#
 
-    dataset = Corpus(dataset_folder, max_token_per_sent, embedding_dim)
+    if model_name in {"BiLSTM", "Transformer"}:
+        dataset = Corpus(dataset_folder, max_token_per_sent, embedding_dim)
 
-    vocab_size = len(dataset.dictionary.tkn2word)
+        vocab_size = len(dataset.dictionary.tkn2word)
 
-    data_loader_train = DataLoader(dataset=dataset.train, batch_size=batch_size, shuffle=True)
-    data_loader_valid = DataLoader(dataset=dataset.valid, batch_size=batch_size, shuffle=False)
-    data_loader_test = DataLoader(dataset=dataset.test, batch_size=batch_size, shuffle=False)
+        data_loader_train = DataLoader(dataset=dataset.train, batch_size=batch_size, shuffle=True)
+        data_loader_valid = DataLoader(dataset=dataset.valid, batch_size=batch_size, shuffle=False)
+        data_loader_test = DataLoader(dataset=dataset.test, batch_size=batch_size, shuffle=False)
+    
+    if model_name == "BERT":
+        dataset = BERT_tokenizer(path=dataset_folder, model_name="bert-base-chinese")
+
+        data_loader_train = DataLoader(dataset=dataset.train, batch_size=batch_size, shuffle=True)
+        data_loader_valid = DataLoader(dataset=dataset.valid, batch_size=batch_size, shuffle=False)
+        data_loader_test = DataLoader(dataset=dataset.test, batch_size=batch_size, shuffle=False)
 
     #-----------------------------------------------------begin-----------------------------------------------------#
     # 可修改选择的模型以及传入的参数
-    #model = BiLSTM_model(vocab_size=vocab_size, ntoken=max_token_per_sent, d_emb=embedding_dim, 
-        #embedding_weight=dataset.embedding, numclass=num_class).to(device)                            
-    model = Transformer_model(vocab_size=vocab_size, ntoken=max_token_per_sent, d_emb=embedding_dim,
-        embedding_weight=dataset.embedding, numclass=num_class).to(device)
+    if model_name == "BiLSTM":
+        model = BiLSTM_model(vocab_size=vocab_size, ntoken=max_token_per_sent, d_emb=embedding_dim, 
+            embedding_weight=dataset.embedding, numclass=num_class).to(device)                            
+    if model_name == "Transformer":
+        model = Transformer_model(vocab_size=vocab_size, ntoken=max_token_per_sent, d_emb=embedding_dim,
+            embedding_weight=dataset.embedding, numclass=num_class).to(device)
+    if model_name == "BERT":
+        model = BERT_model(numclass=num_class, model_name="bert-base-chinese").to(device)
     #------------------------------------------------------end------------------------------------------------------#
     
     # 设置损失函数
@@ -144,6 +159,7 @@ if __name__ == '__main__':
     # 设置优化器                                       
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4)  
 
+    print(1)
     # 进行训练
     train()
 

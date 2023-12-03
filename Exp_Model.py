@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch as torch
 import math
+from transformers import BertModel, BertTokenizer
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, dropout=0.1, max_len=5000):
@@ -102,4 +103,29 @@ class BiLSTM_model(nn.Module):
         x = self.MLP(x)
 
         #------------------------------------------------------end------------------------------------------------------#
+        return x
+
+
+class BERT_model(nn.Module):
+    def __init__(self, numclass=15, model_name="bert-base-chinese"):
+        super(BERT_model, self).__init__()
+        self.model_name = model_name
+        self.model = BertModel.from_pretrained(self.model_name)
+        self.MLP = nn.Sequential(
+            nn.Linear(768, 512),
+            nn.ReLU(),
+            #nn.Dropout(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            #nn.Dropout(),
+            nn.Linear(512, numclass)
+        )
+
+    def forward(self, x):
+        x = self.model(x)
+        #print(x)
+        x = x.last_hidden_state[:, 0]
+        #print(x)
+        x = self.MLP(x)
+        #print(x)
         return x
